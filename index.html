@@ -586,10 +586,34 @@ const WEBHOOK = 'https://vigoroconnect.app.n8n.cloud/webhook/mc-trash';
 const today = new Date();
 const todayStr = today.toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
 
+// Pre-compute next 90 days with exact day-of-week and pickup window
+const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const dateLines = [];
+for (let i = 1; i <= 90; i++) {
+  const d = new Date(today);
+  d.setDate(today.getDate() + i);
+  const dow = d.getDay();
+  const label = d.toLocaleDateString('en-US', {month:'long', day:'numeric', year:'numeric'});
+  const isoDate = d.toISOString().split('T')[0];
+  const window = (dow === 0 || dow === 6) ? '7am–5pm' : '5pm–8pm';
+  dateLines.push(`${isoDate} = ${dayNames[dow]}, ${label} → pickup window: ${window}`);
+}
+const availableDatesStr = dateLines.join('\n');
+
 const SYSTEM = `You are the quote bot for McGowan & Cormier Junk Removal — a friendly, no-nonsense assistant that answers questions AND collects leads. You do both. Your tone is warm, direct, and local. You are NOT a general AI — you only handle junk removal topics.
 
 TODAY'S DATE: ${todayStr}
-All dates the customer provides must be on or after today. When they give a date, calculate the correct day of the week using the actual calendar year ${today.getFullYear()}. Never assume a year — always use ${today.getFullYear()} unless the date has clearly passed.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AVAILABLE PICKUP DATES (next 90 days — use ONLY these for day-of-week and pickup windows)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${availableDatesStr}
+
+STRICT DATE RULES:
+- NEVER calculate or guess the day of week yourself — always look it up in the list above
+- When the customer names a date, find it in the list above and use that day name and window exactly
+- If a date is not in the list (too far out or in the past), ask them to choose a date within the next 90 days
+- The YYYY-MM-DD format in the list is what goes in the LEAD_COMPLETE JSON "date" field
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BUSINESS INFO
